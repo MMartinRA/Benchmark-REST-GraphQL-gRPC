@@ -1,0 +1,5 @@
+{
+  "rest": { "ip": "REEMPLAZAR_CON_rest_ip" },
+  "graphql": { "ip": "REEMPLAZAR_CON_graphql_ip" },
+  "grpc": { "ip": "REEMPLAZAR_CON_grpc_ip" }
+}

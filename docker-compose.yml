@@ -1,0 +1,138 @@
+services:
+  # ---------- REST ----------
+  mysql-rest:
+    image: mysql:8.0
+    container_name: bench-mysql-rest
+    environment:
+      MYSQL_ROOT_PASSWORD: bench
+      MYSQL_DATABASE: benchdb
+    volumes:
+      - ./shared/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pbench"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  redis-rest:
+    image: redis:7-alpine
+    container_name: bench-redis-rest
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rest-service:
+    build: ./rest-service
+    container_name: bench-rest-service
+    environment:
+      PORT: 3000
+      DB_HOST: mysql-rest
+      DB_USER: root
+      DB_PASSWORD: bench
+      DB_NAME: benchdb
+      REDIS_HOST: redis-rest
+      REDIS_PORT: 6379
+    depends_on:
+      mysql-rest:
+        condition: service_healthy
+      redis-rest:
+        condition: service_healthy
+
+  # ---------- GraphQL ----------
+  mysql-graphql:
+    image: mysql:8.0
+    container_name: bench-mysql-graphql
+    environment:
+      MYSQL_ROOT_PASSWORD: bench
+      MYSQL_DATABASE: benchdb
+    volumes:
+      - ./shared/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pbench"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  redis-graphql:
+    image: redis:7-alpine
+    container_name: bench-redis-graphql
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  graphql-service:
+    build: ./graphql-service
+    container_name: bench-graphql-service
+    environment:
+      PORT: 4000
+      DB_HOST: mysql-graphql
+      DB_USER: root
+      DB_PASSWORD: bench
+      DB_NAME: benchdb
+      REDIS_HOST: redis-graphql
+      REDIS_PORT: 6379
+    depends_on:
+      mysql-graphql:
+        condition: service_healthy
+      redis-graphql:
+        condition: service_healthy
+
+  # ---------- gRPC ----------
+  mysql-grpc:
+    image: mysql:8.0
+    container_name: bench-mysql-grpc
+    environment:
+      MYSQL_ROOT_PASSWORD: bench
+      MYSQL_DATABASE: benchdb
+    volumes:
+      - ./shared/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pbench"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  redis-grpc:
+    image: redis:7-alpine
+    container_name: bench-redis-grpc
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  grpc-service:
+    build: ./grpc-service
+    container_name: bench-grpc-service
+    environment:
+      PORT: 50051
+      DB_HOST: mysql-grpc
+      DB_USER: root
+      DB_PASSWORD: bench
+      DB_NAME: benchdb
+      REDIS_HOST: redis-grpc
+      REDIS_PORT: 6379
+    volumes:
+      - ./shared/proto:/app/proto:ro
+    depends_on:
+      mysql-grpc:
+        condition: service_healthy
+      redis-grpc:
+        condition: service_healthy
+
+  # ---------- Cargador de pruebas ----------
+  load-tester:
+    build: ./load-tester
+    container_name: bench-load-tester
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./shared/proto:/app/proto:ro
+      - ./results:/app/results
+    depends_on:
+      - rest-service
+      - graphql-service
+      - grpc-service

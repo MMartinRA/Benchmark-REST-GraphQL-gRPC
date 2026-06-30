@@ -1,0 +1,52 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: stack-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: bench
+      MYSQL_DATABASE: benchdb
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pbench"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  redis:
+    image: redis:7-alpine
+    container_name: stack-redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: ./grpc-service
+    container_name: stack-app
+    ports:
+      - "50051:50051"
+    environment:
+      PORT: 50051
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASSWORD: bench
+      DB_NAME: benchdb
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - ./proto:/app/proto:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  stats-agent:
+    build: ./stats-agent
+    container_name: stack-stats-agent
+    ports:
+      - "9100:9100"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro

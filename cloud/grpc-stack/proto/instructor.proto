@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package instructor;
+
+message University {
+  string name = 1;
+  string country = 2;
+  int32 ranking = 3;
+}
+
+message Degree {
+  string title = 1;
+  int32 year = 2;
+}
+
+message InstructorFlat {
+  int32 id = 1;
+  string name = 2;
+  string national_id = 3;
+  string education_level = 4;
+}
+
+message InstructorFull {
+  int32 id = 1;
+  string name = 2;
+  string national_id = 3;
+  string education_level = 4;
+  University university = 5;
+  Degree degree = 6;
+}
+
+message GetInstructorRequest {
+  int32 id = 1;
+}
+
+service InstructorService {
+  rpc GetInstructor(GetInstructorRequest) returns (InstructorFlat);
+  rpc GetInstructorFull(GetInstructorRequest) returns (InstructorFull);
+}
